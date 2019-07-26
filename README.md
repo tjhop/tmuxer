@@ -18,8 +18,8 @@ Create a config file under `$HOME/.tmuxer/`. Variables accepted and their usage:
 | --- | --- | --- | --- | --- |
 | `TMUX_LAYOUT` | string | The [Tmux layout](https://leanpub.com/the-tao-of-tmux/read#window-layouts) to apply to the panes | `even-vertical`, `even-horizontal`, `main-vertical`, `main-horizontal`, `tiled` | `tiled` |
 | `TMUX_SYNCHRONIZE` | string | Whether or not to synchronize panes to broadcast input to all terminals | `on`, `off` | `on` |
-| `PANES` | array of strings | A list of command targets to be run. Each command/argument specified will open a new tmux pane for the command to be run in | _any_ | _empty array_ |
-| `GLOBAL_COMMAND` | string | A command to be run in each Tmux pane opened. This will prefix any commands/arguments provided in that specific pane's command provided in the `PANES` array | _any_ | _empty string_ |
+| `PANES` | array of strings | A list of command targets to be run. Each command/argument specified will open a new tmux pane for the command to be run in. <br><br>**Be careful!** Commands are entered directly into the terminal and run. This can be dangerous. <br>*Note*: If providing shell variables, you will need to escape them.  | _any_ | _empty array_ |
+| `GLOBAL_COMMAND` | string | A command to be run in each Tmux pane opened. This will prefix any commands/arguments provided in that specific pane's command provided in the `PANES` array <br><br>**Be careful!** Commands are entered directly into the terminal and run. This can be dangerous. <br>*Note*: If providing shell variables, you will need to escape them. | _any_ | _empty string_ |
 
 ## Examples
 Example with a global command (`dig`):
