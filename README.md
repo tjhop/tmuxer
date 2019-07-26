@@ -27,3 +27,6 @@ Example with a global command (`dig`):
 
 Example with no global command and individual pane commands:
 [![asciicast](https://asciinema.org/a/FM3GkAduszLvvDyTVAFOhqoq7.png)](https://asciinema.org/a/FM3GkAduszLvvDyTVAFOhqoq7)
+
+## License
+This project is licensed as [MIT](LICENSE).
