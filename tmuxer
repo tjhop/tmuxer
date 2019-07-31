@@ -4,6 +4,7 @@ set -euo pipefail
 
 # default vars
 BASEDIR="$HOME/.$(basename $0)"
+TMUX_COMMAND="tmux -2"
 
 # need a file with variables to source passed in on command line
 if [ "$#" -ge 1 ] && [ -f "${BASEDIR}/${1}" ]; then
@@ -23,7 +24,7 @@ fi
 
 # new detached windows always start at 80x24
 # https://github.com/tmux/tmux/issues/1106
-tmux -2 new-session -d -s ${TMUX_SESSION_NAME} -x 2000 -y 2000
+${TMUX_COMMAND} new-session -d -s ${TMUX_SESSION_NAME} -x 2000 -y 2000
 
 # open a new pane for each host in the file
 # the window starts with 1 pane, so open (n-1) more panes
@@ -59,4 +60,4 @@ tmux set-window-option -t ${TMUX_SESSION_NAME} synchronize-panes "${TMUX_SYNCHRO
 tmux select-pane -t ${TMUX_SESSION_NAME}:.0
 
 # attach to the new session
-tmux -2 attach-session -t ${TMUX_SESSION_NAME}
+${TMUX_COMMAND} attach-session -t ${TMUX_SESSION_NAME}
