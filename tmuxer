@@ -59,5 +59,11 @@ tmux set-window-option -t ${TMUX_SESSION_NAME} synchronize-panes "${TMUX_SYNCHRO
 # move back to first pane for handing off to user
 tmux select-pane -t ${TMUX_SESSION_NAME}:.0
 
+# if already running in tmux, unset $TMUX to allow session nesting
+if [ ! -z ${TMUX+test} ]; then
+    echo "unsetting 'TMUX' env var to allow session nesting..."
+    unset TMUX
+fi
+
 # attach to the new session
 ${TMUX_COMMAND} attach-session -t ${TMUX_SESSION_NAME}
