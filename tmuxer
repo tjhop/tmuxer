@@ -3,16 +3,16 @@
 set -euo pipefail
 
 # default vars
-BASEDIR="$HOME/.$(basename $0)"
-TMUX_COMMAND="tmux -2"
+TMUXER_BASEDIR="$HOME/.$(basename $0)"
+TMUXER_COMMAND="tmux -2"
 
 # need a file with variables to source passed in on command line
-if [ "$#" -ge 1 ] && [ -f "${BASEDIR}/${1}" ]; then
-    source "${BASEDIR}/${1}"
-    TMUX_SESSION_NAME="${1}"
+if [ "$#" -ge 1 ] && [ -f "${TMUXER_BASEDIR}/${1}" ]; then
+    source "${TMUXER_BASEDIR}/${1}"
+    TMUXER_SESSION_NAME="${1}"
 
     # ensure default values exist if not provided in config file
-    TMUX_LAYOUT="${TMUX_LAYOUT:-tiled}"
+    TMUXER_LAYOUT="${TMUXER_LAYOUT:-tiled}"
     TMUX_SYNCHRONIZE="${TMUX_SYNCHRONIZE:-on}"
     GLOBAL_COMMAND="${GLOBAL_COMMAND:- }"
     declare -a PANES
@@ -24,40 +24,40 @@ fi
 
 # new detached windows always start at 80x24
 # https://github.com/tmux/tmux/issues/1106
-${TMUX_COMMAND} new-session -d -s ${TMUX_SESSION_NAME} -x 2000 -y 2000
+${TMUXER_COMMAND} new-session -d -s ${TMUXER_SESSION_NAME} -x 2000 -y 2000
 
 # open a new pane for each host in the file
 # the window starts with 1 pane, so open (n-1) more panes
 for i in $(seq $(( ${#PANES[*]} - 1 )) ); do
-    tmux split-window -t ${TMUX_SESSION_NAME} -h
+    tmux split-window -t ${TMUXER_SESSION_NAME} -h
 
     # set pane layout to specified layout
     # do after each split to avoid creating panes that are too small
     # and causing tmux to error
-    tmux select-layout -t ${TMUX_SESSION_NAME} "${TMUX_LAYOUT}"
+    tmux select-layout -t ${TMUXER_SESSION_NAME} "${TMUXER_LAYOUT}"
 done
 
 # clear all tmux buffers
-tmux set-window-option -t ${TMUX_SESSION_NAME} synchronize-panes on
-tmux send-keys -t ${TMUX_SESSION_NAME} -R \; send-keys -t ${TMUX_SESSION_NAME} C-l \; clear-history
-tmux set-window-option -t ${TMUX_SESSION_NAME} synchronize-panes off
+tmux set-window-option -t ${TMUXER_SESSION_NAME} synchronize-panes on
+tmux send-keys -t ${TMUXER_SESSION_NAME} -R \; send-keys -t ${TMUXER_SESSION_NAME} C-l \; clear-history
+tmux set-window-option -t ${TMUXER_SESSION_NAME} synchronize-panes off
 
 # move back to first pane
-tmux select-pane -t ${TMUX_SESSION_NAME}:.0
+tmux select-pane -t ${TMUXER_SESSION_NAME}:.0
 
 # cycle through panes and write out commands
 for target in ${!PANES[*]}; do
     # assemble string to have tmux type in for us
     COMMAND_STRING="unset HISTFILE && ${GLOBAL_COMMAND} ${PANES[$target]}"
-    tmux send-keys -t ${TMUX_SESSION_NAME} -- "${COMMAND_STRING}" C-m
-    tmux select-pane -t ${TMUX_SESSION_NAME}:.+
+    tmux send-keys -t ${TMUXER_SESSION_NAME} -- "${COMMAND_STRING}" C-m
+    tmux select-pane -t ${TMUXER_SESSION_NAME}:.+
 done
 
 # if enabled, synchronize panes for "broadcast" input across all at once
-tmux set-window-option -t ${TMUX_SESSION_NAME} synchronize-panes "${TMUX_SYNCHRONIZE}"
+tmux set-window-option -t ${TMUXER_SESSION_NAME} synchronize-panes "${TMUX_SYNCHRONIZE}"
 
 # move back to first pane for handing off to user
-tmux select-pane -t ${TMUX_SESSION_NAME}:.0
+tmux select-pane -t ${TMUXER_SESSION_NAME}:.0
 
 # if already running in tmux, unset $TMUX to allow session nesting
 if [ ! -z ${TMUX+test} ]; then
@@ -66,4 +66,4 @@ if [ ! -z ${TMUX+test} ]; then
 fi
 
 # attach to the new session
-${TMUX_COMMAND} attach-session -t ${TMUX_SESSION_NAME}
+${TMUXER_COMMAND} attach-session -t ${TMUXER_SESSION_NAME}
