@@ -48,13 +48,22 @@ tmux select-pane -t ${TMUXER_SESSION_NAME}:.0
 # cycle through panes and write out commands
 for target in ${!PANES[*]}; do
     # assemble string to have tmux type in for us
-    COMMAND_STRING="unset HISTFILE && ${GLOBAL_COMMAND} ${PANES[$target]}"
-    tmux send-keys -t ${TMUXER_SESSION_NAME} -- "${COMMAND_STRING}" C-m
+    COMMAND_STRING="${GLOBAL_COMMAND} ${PANES[$target]}"
+
+    # set pane title to the command being executed
+    tmux select-pane -t "${TMUXER_SESSION_NAME}" -T "$(sed -E 's/(ssh|hss) //' <<< ${COMMAND_STRING})"
+
+    # send command to pane
+    tmux send-keys -t ${TMUXER_SESSION_NAME} -- "unset HISTFILE && ${COMMAND_STRING}" C-m
     tmux select-pane -t ${TMUXER_SESSION_NAME}:.+
 done
 
 # if enabled, synchronize panes for "broadcast" input across all at once
 tmux set-window-option -t ${TMUXER_SESSION_NAME} synchronize-panes "${TMUX_SYNCHRONIZE}"
+
+# enable pane border status for easier tracking of panes
+tmux set-option -t ${TMUXER_SESSION_NAME} pane-border-status top
+tmux set-option -t ${TMUXER_SESSION_NAME} pane-border-format '#{?pane_synchronized,[sync],} ###{pane_index} #{pane_title}'
 
 # move back to first pane for handing off to user
 tmux select-pane -t ${TMUXER_SESSION_NAME}:.0
