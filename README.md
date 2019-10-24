@@ -22,11 +22,8 @@ Create a config file under `$HOME/.tmuxer/`. Variables accepted and their usage:
 | `GLOBAL_COMMAND` | string | A command to be run in each Tmux pane opened. This will prefix any commands/arguments provided in that specific pane's command provided in the `PANES` array <br><br>**Be careful!** Commands are entered directly into the terminal and run. This can be dangerous. <br>*Note*: If providing shell variables, you will need to escape them. | _any_ | _empty string_ |
 
 ## Examples
-Example with a global command (`dig`):
-[![asciicast](https://asciinema.org/a/zpvTnqtBpyiFYauARunD0VZCj.png)](https://asciinema.org/a/zpvTnqtBpyiFYauARunD0VZCj)
-
-Example with no global command and individual pane commands:
-[![asciicast](https://asciinema.org/a/FM3GkAduszLvvDyTVAFOhqoq7.png)](https://asciinema.org/a/FM3GkAduszLvvDyTVAFOhqoq7)
+An example with a global command (`dig`), and an example with several arbitrary commands.
+[![asciicast](https://asciinema.org/a/8KNmN9ZXih2iysamEonrkSNmg.png)](https://asciinema.org/a/8KNmN9ZXih2iysamEonrkSNmg)
 
 ## License
 This project is licensed as [MIT](LICENSE).
