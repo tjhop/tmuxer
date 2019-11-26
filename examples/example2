@@ -1,4 +1,5 @@
-PANES=(
+TMUXER_COMMAND='{}'
+TMUXER_PANES=(
     "for i in {1..3}; do echo \"test #\$i\"; done"
     "date"
     "ls -lh \$HOME/github/tmuxer"

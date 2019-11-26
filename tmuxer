@@ -3,76 +3,198 @@
 set -euo pipefail
 
 # default vars
-TMUXER_BASEDIR="$HOME/.$(basename $0)"
-TMUXER_COMMAND="tmux -2"
+readonly _TMUXER_SUBST_STRING="{}"
+declare -A _TMUXER_VALID_LAYOUT_ARR=( ['tiled']=1 ['even-horizontal']=1 ['even-vertical']=1 ['main-horizontal']=1 ['main-vertical']=1 )
+# utility vars
+readonly _TMUXER_TMUX_RUNNING=$(tmux info &> /dev/null && echo $?)
+# config vars
+TMUXER_SESSION=
+TMUXER_COMMAND="echo ${_TMUXER_SUBST_STRING}"
+TMUXER_CONFIG_FILE=
+TMUXER_LAYOUT='tiled'
+TMUXER_NEW_SESSION=0
+TMUXER_DISABLE_SYNC=0
 
-# need a file with variables to source passed in on command line
-if [ "$#" -ge 1 ] && [ -f "${TMUXER_BASEDIR}/${1}" ]; then
-    source "${TMUXER_BASEDIR}/${1}"
-    TMUXER_SESSION_NAME="${1}"
-
-    # ensure default values exist if not provided in config file
-    TMUXER_LAYOUT="${TMUXER_LAYOUT:-tiled}"
-    TMUX_SYNCHRONIZE="${TMUX_SYNCHRONIZE:-on}"
-    GLOBAL_COMMAND="${GLOBAL_COMMAND:- }"
-    declare -a PANES
-
-else
-    echo "Need tmuxer config file to run"
+die () {
+    printf '%s\n' "$1" >&2
     exit 1
+}
+
+print_help () {
+    cat <<USAGE_EOF
+Usage:
+    -h, --help              Show help
+    -c, --command           Set command to be executed in each pane (default: \`echo {}\`). The command should contain \`{}\` where you
+                            intend to substitute the pane's target argument. Multiple substituions can be made per pane.
+                                For example: \`dig {} +short\`
+    -f, --file[=<file>]     Config file to read from
+    -l, --layout[=<layout>] Tmux layout to use
+                                Valid options: \`tiled\`, \`even-horizontal\`, \`even-vertical\`, \`main-horizontal\`, \`main-vertical\`
+                                Default: \`tiled\`
+    -n, --new-session       Create new tmux session (default only if attached session not detected)
+    -s, --ssh               "SSH Mode". Changes command to \`ssh {}\` (Same as: \`--command 'ssh {}'\`)
+    -u, --unsync            Disable synchronization of panes (default: pane input is synchronized)
+USAGE_EOF
+}
+
+# get flags
+while (( "$#" > 0 )); do
+    case "$1" in
+        -h | -\? | --help)
+            print_help
+            exit
+            ;;
+        -c | --command)
+            if [[ "$2" ]]; then
+                TMUXER_COMMAND=${2}
+                shift
+            else
+                die 'Flag "--command" requires argument'
+            fi
+            ;;
+        --command=?*)
+            TMUXER_COMMAND=${1#*=} # remote everything up to '=' and assign remainder
+            ;;
+        --command=)
+            die 'Flag "--command" requires argument'
+            ;;
+        -f | --file)
+            if [[ "$2" ]]; then
+                TMUXER_CONFIG_FILE=${2}
+                shift
+            else
+                die 'Flag "--file" requires argument'
+            fi
+            ;;
+        --file=?*)
+            TMUXER_CONFIG_FILE=${1#*=} # remote everything up to '=' and assign remainder
+            ;;
+        --file=)
+            die 'Flag "--file" requires argument'
+            ;;
+        -l | --layout)
+            if [[ "$2" ]]; then
+                TMUXER_LAYOUT=${2}
+                shift
+            else
+                die 'Flag "--layout" requires argument'
+            fi
+            ;;
+        --layout=?*)
+            TMUXER_LAYOUT=${1#*=} # remote everything up to '=' and assign remainder
+            ;;
+        --layout=)
+            die 'Flag "--layout" requires argument'
+            ;;
+        -n | --new-session)
+            TMUXER_NEW_SESSION=1
+            ;;
+        -s | --ssh)
+            TMUXER_COMMAND="ssh {}"
+            ;;
+        -u | --unsync)
+            TMUXER_DISABLE_SYNC=1
+            ;;
+        --) # end of options
+            shift
+            break
+            ;;
+        -?*)
+            printf 'unknown option "%s" ignored\n' "$1" >&2
+            ;;
+        *) # default case: no more options, break loop
+            break
+    esac
+
+    shift
+done
+
+# check that layout is valid
+if [[ ! -v _TMUXER_VALID_LAYOUT_ARR["$TMUXER_LAYOUT"] ]]; then
+    die 'Layout provided is not a valid Tmux layout: "$TMUXER_LAYOUT"'
 fi
 
-# new detached windows always start at 80x24
-# https://github.com/tmux/tmux/issues/1106
-${TMUXER_COMMAND} new-session -d -s ${TMUXER_SESSION_NAME} -x 2000 -y 2000
+# check if we're running from config file or command line
+if [[ ! -z "$TMUXER_CONFIG_FILE" ]]; then
+    if [[ -f "$TMUXER_CONFIG_FILE" ]]; then
+        source "$TMUXER_CONFIG_FILE"
+    else
+        die 'Could not find config file: "$TMUXER_CONFIG_FILE"'
+    fi
+else
+    # running from command line, check if input is interactive shell or pipe
+    if [[ -t 0 ]]; then 
+        # we have a TTY, grab remaining command line args
+        TMUXER_PANES=("$@")
+    else
+        while read -r line; do
+            TMUXER_PANES+=("${line}")
+        done < <(cat | sed '/^$/d')
+    fi
+fi
 
-# open a new pane for each host in the file
-# the window starts with 1 pane, so open (n-1) more panes
-for i in $(seq $(( ${#PANES[*]} - 1 )) ); do
-    tmux split-window -t ${TMUXER_SESSION_NAME} -h
+# check if already running in tmux
+if [[ ${_TMUXER_TMUX_RUNNING} == 0 && -n "${TMUX+set}" ]]; then
+    # check if new session was requested
+    if [[ "$TMUXER_NEW_SESSION" == 1 ]]; then
+        TMUXER_SESSION="TMUXER-$$"
+        tmux new-session -d -s "${TMUXER_SESSION}"
+    else
+        TMUXER_SESSION="$(tmux display-message -p '#{session_name}')"
 
-    # set pane layout to specified layout
-    # do after each split to avoid creating panes that are too small
-    # and causing tmux to error
-    tmux select-layout -t ${TMUXER_SESSION_NAME} "${TMUXER_LAYOUT}"
-done
-
-# clear all tmux buffers
-tmux set-window-option -t ${TMUXER_SESSION_NAME} synchronize-panes on
-tmux send-keys -t ${TMUXER_SESSION_NAME} -R \; send-keys -t ${TMUXER_SESSION_NAME} C-l \; clear-history
-tmux set-window-option -t ${TMUXER_SESSION_NAME} synchronize-panes off
-
-# move back to first pane
-tmux select-pane -t ${TMUXER_SESSION_NAME}:.0
-
-# cycle through panes and write out commands
-for target in ${!PANES[*]}; do
-    # assemble string to have tmux type in for us
-    COMMAND_STRING="${GLOBAL_COMMAND} ${PANES[$target]}"
-
-    # set pane title to the command being executed
-    tmux select-pane -t "${TMUXER_SESSION_NAME}" -T "$(sed -E 's/(ssh|hss) //' <<< ${COMMAND_STRING})"
-
-    # send command to pane
-    tmux send-keys -t ${TMUXER_SESSION_NAME} -- "unset HISTFILE && ${COMMAND_STRING}" C-m
-    tmux select-pane -t ${TMUXER_SESSION_NAME}:.+
-done
-
-# if enabled, synchronize panes for "broadcast" input across all at once
-tmux set-window-option -t ${TMUXER_SESSION_NAME} synchronize-panes "${TMUX_SYNCHRONIZE}"
+        # create new window in our session to hold our panes
+        tmux new-window -t "${TMUXER_SESSION}:$(( $(tmux list-windows -t "${TMUXER_SESSION}" -F '#{window_index}' | sort -rn | head -n1) + 1 ))" -a -n "TMUXER-$$"
+    fi
+else
+    # tmux not running, need new session anyway
+    TMUXER_NEW_SESSION=1
+    TMUXER_SESSION="TMUXER-$$"
+    tmux new-session -d -s "${TMUXER_SESSION}"
+fi
 
 # enable pane border status for easier tracking of panes
-tmux set-option -t ${TMUXER_SESSION_NAME} pane-border-status top
-tmux set-option -t ${TMUXER_SESSION_NAME} pane-border-format '#{?pane_synchronized,[sync],} ###{pane_index} #{pane_title}'
+tmux set-option -t ${TMUXER_SESSION} pane-border-status top
+tmux set-option -t ${TMUXER_SESSION} pane-border-format '#{?pane_synchronized,[sync],} ###{pane_index} #{pane_title}'
 
-# move back to first pane for handing off to user
-tmux select-pane -t ${TMUXER_SESSION_NAME}:.0
+for pane in "${TMUXER_PANES[@]}"; do
+    # split window to make pane
+    tmux split-window -t ${TMUXER_SESSION}
 
-# if already running in tmux, unset $TMUX to allow session nesting
-if [ ! -z ${TMUX+test} ]; then
-    echo "unsetting 'TMUX' env var to allow session nesting..."
-    unset TMUX
+    # clear the pane's buffer
+    tmux send-keys -t ${TMUXER_SESSION} -R \; send-keys -t ${TMUXER_SESSION} C-l \; clear-history
+
+    # assemble command to send to pane
+    tmux send-keys -t ${TMUXER_SESSION} -- "${TMUXER_COMMAND//${_TMUXER_SUBST_STRING}/$pane}" C-m
+
+    # adjust layout after every pane created so tmux doesn't get upset about pane size
+    tmux select-layout -t ${TMUXER_SESSION} "${TMUXER_LAYOUT}"
+done
+
+# as long as user didn't request input sync to be disabled, enable it
+if [[ "$TMUXER_DISABLE_SYNC" == 0 ]]; then
+    tmux set-window-option -t ${TMUXER_SESSION} synchronize-panes on
 fi
 
-# attach to the new session
-${TMUXER_COMMAND} attach-session -t ${TMUXER_SESSION_NAME}
+# kill off empty 1st pane
+tmux kill-pane -t ${TMUXER_SESSION}:.0
+
+# final layout adjustment
+tmux select-layout -t ${TMUXER_SESSION} "${TMUXER_LAYOUT}"
+
+# move back to first pane for handing off to user
+tmux select-pane -t ${TMUXER_SESSION}:.0
+
+if [[ "$TMUXER_NEW_SESSION" == 1 ]]; then
+    if [[ ${_TMUXER_TMUX_RUNNING} == 0 && -n "${TMUX+set}" ]]; then
+        # if tmux is already running and a session is attached, then switch to the new session
+        echo "* Switching to new \`tmuxer\` session '${TMUXER_SESSION}'..."
+        tmux switch-client -t ${TMUXER_SESSION}
+    elif [[ ! -t 0 ]]; then
+        # if stdin is pipe and not TTY, then we can't directly attach to the new session
+        echo "* New \`tmuxer\` session created, but couldn't attach automatically because input was not from a TTY."
+        echo "* You can attach like so:"
+        echo "tmux attach -t ${TMUXER_SESSION}"
+    else
+        tmux attach -t ${TMUXER_SESSION}
+    fi
+fi

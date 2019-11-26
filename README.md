@@ -1,10 +1,13 @@
 # Tmuxer
-A Tmux layout generator and command executor, similar to [tmuxinator](https://github.com/tmuxinator/tmuxinator) or [i2ssh](https://github.com/mbruggmann/i2ssh).
+A Tmux layout generator and command executor, similar to [tmuxinator](https://github.com/tmuxinator/tmuxinator), [tmux-xpanes](https://github.com/greymd/tmux-xpanes) or [i2ssh](https://github.com/mbruggmann/i2ssh).
 
 ## Overview
-`tmuxer` is a small Bash script to create Tmux sessions of a predefined layout, and optionally seed each pane with a command to run. Commands can be specified on a per-pane basis, or a global command can be provided which each pane containing a different target argument. Optionally, it allows specifying a Tmux layout for the panes, as well as whether or not to synchronize input across all panes (ie, broadcast input to all Tmux panes at once).
+`tmuxer` is a small Bash script to automatically create multiple Tmux panes, and optionally run a command in each pane. Features include:
 
-`tmuxer` config files just contains Bash variables that get sourced by the script. Config files are currently expected to live under `$HOME/.tmuxer/` and can be named whatever you want. Example configs can be found in the `examples/` folder in this repo. There are also `asciinema` cast examples under [Examples](#Examples).
+- The command to run can be global (ie, the same command is run in all panes and each pane provides a different target argument), or individual commands can be run per-pane.
+- Input is synchronized across all panes by default.
+- The ability to choose Tmux layout.
+- The ability to create a new session or create a new window if attached to an existing Tmux session.
 
 ## Installation
 1. Install `tmux` (instructions will be specific to the distro you're running).
@@ -12,18 +15,85 @@ A Tmux layout generator and command executor, similar to [tmuxinator](https://gi
 3. Symlink `tmuxer` script somewhere in your `$PATH`.
 
 ## Usage
-Create a config file under `$HOME/.tmuxer/`. Variables accepted and their usage:
+`tmuxer` accepts several flags that you can use to configure it's behavior:
+
+```
+~ -> tmuxer -h
+Usage:
+    -h, --help              Show help
+    -c, --command           Set command to be executed in each pane (default: `echo {}`). The command should contain `{}` where you
+                            intend to substitute the pane's target argument. For example: `dig {} +short`
+    -f, --file[=<file>]     Config file to read from
+    -l, --layout[=<layout>] Tmux layout to use
+                                Valid options: `tiled`, `even-horizontal`, `even-vertical`, `main-horizontal`, `main-vertical`
+                                Default: `tiled`
+    -n, --new-session       Create new tmux session (default only if attached session not detected)
+    -s, --ssh               "SSH Mode". Changes command to `ssh {}` (Same as: `--command 'ssh {}'`)
+    -u, --unsync            Disable synchronization of panes (default: pane input is synchronized)
+```
+
+"Targets" for each Tmux pane can be provided as command line arguments, by piping/redirecting data to `tmuxer`, or by writing a config file. Checkout the examples below!
+
+## Examples
+
+#### Open new Tmux session and SSH to 10 hosts, without synchronizing input:
+```shell
+$ tmuxer --new-session --unsync --ssh user@host{01..10}
+
+# same as:
+$ tmuxer -n -u -s user@host{01..10}
+```
+
+#### Open new pane and check PTR records for reach A record returned by the `dig` command:
+```shell
+$ dig cloudfront.com +short | tmuxer --command 'dig -x {} +short' --layout 'even-vertical'
+
+# same as:
+$ dig cloudfront.com +short | tmuxer -c 'dig -x {} +short' -l 'even-vertical'
+```
+
+#### Open several panes and run different commands in each (_be careful to escape things!_):
+```shell
+$ tmuxer -c '{}' \
+    "for i in {1..3}; do echo \"test #\$i\"; done" \
+    "date" \
+    "ls -lh \$HOME/github/tmuxer" \
+    "cd \$HOME/github/tmuxer && git status"
+```
+
+#### Open up 4 blank panes in a new-session:
+```shell
+$ tmuxer -n -c '{}' '' '' '' ''
+```
+
+#### Use a config file to define targets:
+```shell
+$ cat<<EOF > /tmp/tmuxer-example
+TMUXER_LAYOUT='even-vertical'
+TMUXER_DISABLE_SYNC=1
+TMUXER_NEW_SESSION=1
+TMUXER_COMMAND='echo "{}": && dig {} +short'
+TMUXER_PANES=(
+    "google.com"
+    "cloudflare.com"
+    "packet.net"
+    "linode.com"
+)
+EOF
+
+$ tmuxer -f /tmp/tmuxer-example
+```
+
+## Config File
+#### Variables accepted and their usage:
 
 | Variable Name | Variable Type | Description | Accepted Values | Default Value |
 | --- | --- | --- | --- | --- |
-| `TMUX_LAYOUT` | string | The [Tmux layout](https://leanpub.com/the-tao-of-tmux/read#window-layouts) to apply to the panes | `even-vertical`, `even-horizontal`, `main-vertical`, `main-horizontal`, `tiled` | `tiled` |
-| `TMUX_SYNCHRONIZE` | string | Whether or not to synchronize panes to broadcast input to all terminals | `on`, `off` | `on` |
-| `PANES` | array of strings | A list of command targets to be run. Each command/argument specified will open a new tmux pane for the command to be run in. <br><br>**Be careful!** Commands are entered directly into the terminal and run. This can be dangerous. <br>*Note*: If providing shell variables, you will need to escape them.  | _any_ | _empty array_ |
-| `GLOBAL_COMMAND` | string | A command to be run in each Tmux pane opened. This will prefix any commands/arguments provided in that specific pane's command provided in the `PANES` array <br><br>**Be careful!** Commands are entered directly into the terminal and run. This can be dangerous. <br>*Note*: If providing shell variables, you will need to escape them. | _any_ | _empty string_ |
-
-## Examples
-An example with a global command (`dig`), and an example with several arbitrary commands.
-[![asciicast](https://asciinema.org/a/8KNmN9ZXih2iysamEonrkSNmg.png)](https://asciinema.org/a/8KNmN9ZXih2iysamEonrkSNmg)
+| `TMUXER_COMMAND` | string | A command to be run in each Tmux pane opened. This will prefix any commands/arguments provided in that specific pane's command provided in the `PANES` array <br><br>**Be careful!** Commands are entered directly into the terminal and run. This can be dangerous. <br>*Note*: If providing shell variables, you will need to escape them. | _any_ | _empty string_ |
+| `TMUXER_PANES` | array of strings | A list of command targets to be run. Each command/argument specified will open a new Tmux pane for the command to be run in. <br><br>**Be careful!** Commands are entered directly into the terminal and run. This can be dangerous. <br>*Note*: If providing shell variables, you will need to escape them.  | _any_ | _empty array_ |
+| `TMUXER_LAYOUT` | string | The [Tmux layout](https://leanpub.com/the-tao-of-tmux/read#window-layouts) to apply to the panes | `even-vertical`, `even-horizontal`, `main-vertical`, `main-horizontal`, `tiled` | `tiled` |
+| `TMUXER_DISABLE_SYNC` | integer | Whether or not to synchronize panes to broadcast input to all terminals | `1` (Disable sync)<br>`0`(Enable sync) | `0` |
+| `TMUXER_NEW_SESSION` | string | Whether or not to create a new Tmux session to hold the panes.<br>This is the default if no attached session is detected. | `1` (Yes) <br>`0` (No) | `0`<br>(unless no attached session detected) |
 
 ## License
 This project is licensed as [MIT](LICENSE).

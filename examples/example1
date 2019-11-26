@@ -1,9 +1,10 @@
-TMUX_LAYOUT='even-vertical'
-TMUX_SYNCHRONIZE='on'
-GLOBAL_COMMAND="dig"
-PANES=(
-    "google.com +short"
-    "-x 1.1.1.1 +short"
-    "cloudflare.com +short"
-    "TXT mail.google.com +short"
+TMUXER_LAYOUT='even-vertical'
+TMUXER_DISABLE_SYNC=1
+TMUXER_NEW_SESSION=1
+TMUXER_COMMAND='echo "{}": && dig {} +short'
+TMUXER_PANES=(
+    "google.com"
+    "cloudflare.com"
+    "packet.net"
+    "linode.com"
 )
