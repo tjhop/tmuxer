@@ -84,6 +84,17 @@ EOF
 $ tmuxer -f /tmp/tmuxer-example
 ```
 
+## Screencast Demos
+
+Connecting to multiple hosts with `ssh`:
+[![asciicast](https://asciinema.org/a/xP4HphFxGqzrtusVSxodVX9IV.svg)](https://asciinema.org/a/xP4HphFxGqzrtusVSxodVX9IV)
+
+Using a config file with `tmuxer`:
+[![asciicast](https://asciinema.org/a/IAqOAHDJAkqPqAMmccdKFEVdY.svg)](https://asciinema.org/a/IAqOAHDJAkqPqAMmccdKFEVdY)
+
+Running arbitrary commands with data from stdin:
+[![asciicast](https://asciinema.org/a/3tlGDk6BVhwMUoNFsWUzbBXiE.svg)](https://asciinema.org/a/3tlGDk6BVhwMUoNFsWUzbBXiE)
+
 ## Config File
 #### Variables accepted and their usage:
 
