@@ -143,7 +143,7 @@ if [[ ${_TMUXER_TMUX_RUNNING} == 0 && -n "${TMUX+set}" ]]; then
         TMUXER_SESSION="$(tmux display-message -p '#{session_name}')"
 
         # create new window in our session to hold our panes
-        tmux new-window -t "${TMUXER_SESSION}:$(( $(tmux list-windows -t "${TMUXER_SESSION}" -F '#{window_index}' | sort -rn | head -n1) + 1 ))" -a -n "TMUXER-$$"
+        tmux new-window -t "${TMUXER_SESSION}:$(( $(tmux list-windows -t "${TMUXER_SESSION}" -F '#{window_index}' | sort -rn | head -n1) + 1 ))" -n "TMUXER-$$"
     fi
 else
     # tmux not running, need new session anyway
@@ -172,7 +172,7 @@ done
 
 # as long as user didn't request input sync to be disabled, enable it
 if [[ "$TMUXER_DISABLE_SYNC" == 0 ]]; then
-    tmux set-window-option -t ${TMUXER_SESSION} synchronize-panes on
+    tmux set-option -w -t ${TMUXER_SESSION} synchronize-panes on
 fi
 
 # kill off empty 1st pane
