@@ -7,6 +7,7 @@ readonly _TMUXER_SUBST_STRING="{}"
 declare -A _TMUXER_VALID_LAYOUT_ARR=( ['tiled']=1 ['even-horizontal']=1 ['even-vertical']=1 ['main-horizontal']=1 ['main-vertical']=1 )
 # utility vars
 readonly _TMUXER_TMUX_RUNNING=$(tmux info &> /dev/null && echo $?)
+declare -a _TMUXER_REQUIRED_COMMANDS=( 'cat' 'head' 'sed' 'sort' 'ssh' 'tmux' )
 # config vars
 TMUXER_SESSION=
 TMUXER_COMMAND="echo ${_TMUXER_SUBST_STRING}"
@@ -107,6 +108,13 @@ while (( "$#" > 0 )); do
     esac
 
     shift
+done
+
+# check that required packages are available
+for pkg in "${_TMUXER_REQUIRED_COMMANDS[@]}"; do
+    if [[ ! $(command -v "$pkg") ]]; then
+        die "Command \`$pkg\` is required and could not be found, please ensure it's installed and in \$PATH"
+    fi
 done
 
 # check that layout is valid
