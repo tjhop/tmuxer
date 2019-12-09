@@ -28,8 +28,8 @@ Usage:
     -c, --command           Set command to be executed in each pane (default: \`echo {}\`). The command should contain \`{}\` where you
                             intend to substitute the pane's target argument. Multiple substituions can be made per pane.
                                 For example: \`dig {} +short\`
-    -f, --file[=<file>]     Config file to read from
-    -l, --layout[=<layout>] Tmux layout to use
+    -f, --file [<file>]     Config file to read from
+    -l, --layout [<layout>] Tmux layout to use
                                 Valid options: \`tiled\`, \`even-horizontal\`, \`even-vertical\`, \`main-horizontal\`, \`main-vertical\`
                                 Default: \`tiled\`
     -n, --new-session       Create new tmux session (default only if attached session not detected)
@@ -53,12 +53,6 @@ while (( "$#" > 0 )); do
                 die 'Flag "--command" requires argument'
             fi
             ;;
-        --command=?*)
-            TMUXER_COMMAND=${1#*=} # remote everything up to '=' and assign remainder
-            ;;
-        --command=)
-            die 'Flag "--command" requires argument'
-            ;;
         -f | --file)
             if [[ "$2" ]]; then
                 TMUXER_CONFIG_FILE=${2}
@@ -67,12 +61,6 @@ while (( "$#" > 0 )); do
                 die 'Flag "--file" requires argument'
             fi
             ;;
-        --file=?*)
-            TMUXER_CONFIG_FILE=${1#*=} # remote everything up to '=' and assign remainder
-            ;;
-        --file=)
-            die 'Flag "--file" requires argument'
-            ;;
         -l | --layout)
             if [[ "$2" ]]; then
                 TMUXER_LAYOUT=${2}
@@ -80,12 +68,6 @@ while (( "$#" > 0 )); do
             else
                 die 'Flag "--layout" requires argument'
             fi
-            ;;
-        --layout=?*)
-            TMUXER_LAYOUT=${1#*=} # remote everything up to '=' and assign remainder
-            ;;
-        --layout=)
-            die 'Flag "--layout" requires argument'
             ;;
         -n | --new-session)
             TMUXER_NEW_SESSION=1
