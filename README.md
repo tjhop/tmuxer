@@ -22,9 +22,11 @@ A Tmux layout generator and command executor, similar to [tmuxinator](https://gi
 Usage:
     -h, --help              Show help
     -c, --command           Set command to be executed in each pane (default: `echo {}`). The command should contain `{}` where you
-                            intend to substitute the pane's target argument. For example: `dig {} +short`
-    -f, --file[=<file>]     Config file to read from
-    -l, --layout[=<layout>] Tmux layout to use
+                            intend to substitute the pane's target argument. Multiple substituions can be made per pane.
+                                For example: `dig {} +short`
+    -f, --file [<file>]     Config file to read from. The following paths are checked for the specified file:
+                                Absolute path, relative path to current directory, and `$XDG_CONFIG_HOME/tmuxer`
+    -l, --layout [<layout>] Tmux layout to use
                                 Valid options: `tiled`, `even-horizontal`, `even-vertical`, `main-horizontal`, `main-vertical`
                                 Default: `tiled`
     -n, --new-session       Create new tmux session (default only if attached session not detected)
@@ -96,6 +98,12 @@ Running arbitrary commands with data from stdin:
 [![asciicast](https://asciinema.org/a/3tlGDk6BVhwMUoNFsWUzbBXiE.svg)](https://asciinema.org/a/3tlGDk6BVhwMUoNFsWUzbBXiE)
 
 ## Config File
+
+Tmuxer will attempt to load configuration files in the following order:
+1. By absolute path, if provided
+2. By relative path to the working directory where `tmuxer` is invoked from
+3. By relative path to `$XDG_CONFIG_HOME/tmuxer` as a fallback
+
 #### Variables accepted and their usage:
 
 | Variable Name | Variable Type | Description | Accepted Values | Default Value |

@@ -4,10 +4,11 @@ set -euo pipefail
 
 # default vars
 readonly _TMUXER_SUBST_STRING="{}"
+readonly _TMUXER_DEFAULT_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/tmuxer"
 declare -A _TMUXER_VALID_LAYOUT_ARR=( ['tiled']=1 ['even-horizontal']=1 ['even-vertical']=1 ['main-horizontal']=1 ['main-vertical']=1 )
 # utility vars
 readonly _TMUXER_TMUX_RUNNING=$(tmux info &> /dev/null && echo $?)
-declare -a _TMUXER_REQUIRED_COMMANDS=( 'cat' 'head' 'sed' 'sort' 'ssh' 'tmux' )
+declare -a _TMUXER_REQUIRED_COMMANDS=( 'cat' 'head' 'realpath' 'sed' 'sort' 'ssh' 'tmux' )
 # config vars
 TMUXER_SESSION=
 TMUXER_COMMAND="echo ${_TMUXER_SUBST_STRING}"
@@ -28,7 +29,8 @@ Usage:
     -c, --command           Set command to be executed in each pane (default: \`echo {}\`). The command should contain \`{}\` where you
                             intend to substitute the pane's target argument. Multiple substituions can be made per pane.
                                 For example: \`dig {} +short\`
-    -f, --file [<file>]     Config file to read from
+    -f, --file [<file>]     Config file to read from. The following paths are checked for the specified file:
+                                Absolute path, relative path to current directory, and \`\$XDG_CONFIG_HOME/tmuxer\`
     -l, --layout [<layout>] Tmux layout to use
                                 Valid options: \`tiled\`, \`even-horizontal\`, \`even-vertical\`, \`main-horizontal\`, \`main-vertical\`
                                 Default: \`tiled\`
@@ -106,8 +108,15 @@ fi
 
 # check if we're running from config file or command line
 if [[ ! -z "$TMUXER_CONFIG_FILE" ]]; then
-    if [[ -f "$TMUXER_CONFIG_FILE" ]]; then
-        source "$TMUXER_CONFIG_FILE"
+    # check if absolute path
+    if [[ -f "$(realpath $TMUXER_CONFIG_FILE)" ]]; then
+        source "$(realpath $TMUXER_CONFIG_FILE)"
+    # check if path relative to current working dir
+    elif [[ -f "$(realpath $(pwd)/$TMUXER_CONFIG_FILE)" ]]; then
+        source "$(realpath $(pwd)/$TMUXER_CONFIG_FILE)"
+    # check if path relative to XDG_CONFIG_HOME based default directory
+    elif [[ -f "$(realpath ${_TMUXER_DEFAULT_CONFIG_DIR/%\//}/$TMUXER_CONFIG_FILE)" ]]; then
+        source "$(realpath ${_TMUXER_DEFAULT_CONFIG_DIR/%\//}/$TMUXER_CONFIG_FILE)"
     else
         die 'Could not find config file: "$TMUXER_CONFIG_FILE"'
     fi
