@@ -10,9 +10,21 @@ A Tmux layout generator and command executor, similar to [tmuxinator](https://gi
 - The ability to create a new session or create a new window if attached to an existing Tmux session.
 
 ## Installation
+
+#### Install with git
 1. Install `tmux` (instructions will be specific to the distro you're running).
 2. Clone this repo.
 3. Symlink `tmuxer` script somewhere in your `$PATH`.
+
+#### Install from AUR
+`tmuxer` is now available in the [AUR for Archlinux](https://aur.archlinux.org/packages/tmuxer-git/)!
+
+Basic AUR install:
+```
+git clone https://aur.archlinux.org/tmuxer-git.git aur/tmuxer-git
+cd aur/tmuxer-git/
+makepkg -si PKGBUILD
+```
 
 ## Usage
 `tmuxer` accepts several flags that you can use to configure it's behavior:
