@@ -1,7 +1,9 @@
 # Tmuxer
+
 A Tmux layout generator and command executor, similar to [tmuxinator](https://github.com/tmuxinator/tmuxinator), [tmux-xpanes](https://github.com/greymd/tmux-xpanes) or [i2ssh](https://github.com/mbruggmann/i2ssh).
 
 ## Overview
+
 `tmuxer` is a small Bash script to automatically create multiple Tmux panes, and optionally run a command in each pane. Features include:
 
 - The command to run can be global (ie, the same command is run in all panes and each pane provides a different target argument), or individual commands can be run per-pane.
@@ -12,11 +14,13 @@ A Tmux layout generator and command executor, similar to [tmuxinator](https://gi
 ## Installation
 
 #### Install with git
+
 1. Install `tmux` (instructions will be specific to the distro you're running).
 2. Clone this repo.
 3. Symlink `tmuxer` script somewhere in your `$PATH`.
 
 #### Install from AUR
+
 `tmuxer` is now available in the [AUR for Archlinux](https://aur.archlinux.org/packages/tmuxer-git/)!
 
 Basic AUR install:
@@ -27,15 +31,17 @@ makepkg -si PKGBUILD
 ```
 
 ## Usage
+
 `tmuxer` accepts several flags that you can use to configure it's behavior:
 
 ```
-~ -> tmuxer -h
+$ tmuxer -h
 Usage:
     -h, --help              Show help
     -c, --command           Set command to be executed in each pane (default: `echo {}`). The command should contain `{}` where you
                             intend to substitute the pane's target argument. Multiple substituions can be made per pane.
                                 For example: `dig {} +short`
+    -d, --dump              Write out a tmuxer config file to stdout based on the provided command line arguments
     -f, --file [<file>]     Config file to read from. The following paths are checked for the specified file:
                                 Absolute path, relative path to current directory, and `$XDG_CONFIG_HOME/tmuxer`
     -l, --layout [<layout>] Tmux layout to use
@@ -51,6 +57,7 @@ Usage:
 ## Examples
 
 #### Open new Tmux session and SSH to 10 hosts, without synchronizing input:
+
 ```shell
 $ tmuxer --new-session --unsync --ssh user@host{01..10}
 
@@ -59,6 +66,7 @@ $ tmuxer -n -u -s user@host{01..10}
 ```
 
 #### Open new pane and check PTR records for reach A record returned by the `dig` command:
+
 ```shell
 $ dig cloudfront.com +short | tmuxer --command 'dig -x {} +short' --layout 'even-vertical'
 
@@ -67,6 +75,7 @@ $ dig cloudfront.com +short | tmuxer -c 'dig -x {} +short' -l 'even-vertical'
 ```
 
 #### Open several panes and run different commands in each (_be careful to escape things!_):
+
 ```shell
 $ tmuxer -c '{}' \
     "for i in {1..3}; do echo \"test #\$i\"; done" \
@@ -76,11 +85,13 @@ $ tmuxer -c '{}' \
 ```
 
 #### Open up 4 blank panes in a new-session:
+
 ```shell
 $ tmuxer -n -c '{}' '' '' '' ''
 ```
 
 #### Use a config file to define targets:
+
 ```shell
 $ cat<<EOF > /tmp/tmuxer-example
 TMUXER_LAYOUT='even-vertical'
@@ -96,6 +107,30 @@ TMUXER_PANES=(
 EOF
 
 $ tmuxer -f /tmp/tmuxer-example
+```
+
+#### Write a tmuxer config file based on command line options
+
+Useful if you've created a `tmuxer` CLI command that you'd like to re-use in the future as a config file. Example: 
+
+```shell
+$ tmuxer --new-session --ssh user@host{01..04}
+```
+
+Using the `-d`/`--dump` flag, a `tmuxer` config file will be written to stdout (which can of course be redirected to a file of your choosing):
+
+```shell
+$ tmuxer --dump --new-session --ssh user@host{01..04}
+TMUXER_LAYOUT="tiled"
+TMUXER_DISABLE_SYNC=0
+TMUXER_NEW_SESSION=1
+TMUXER_COMMAND="ssh {}"
+TMUXER_PANES=(
+        user@host01
+        user@host02
+        user@host03
+        user@host04
+)
 ```
 
 ## Screencast Demos

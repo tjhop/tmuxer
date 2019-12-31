@@ -16,6 +16,7 @@ TMUXER_CONFIG_FILE=
 TMUXER_LAYOUT='tiled'
 TMUXER_NEW_SESSION=0
 TMUXER_DISABLE_SYNC=0
+TMUXER_DUMP_CONFIG=0
 
 die () {
     printf '%s\n' "$1" >&2
@@ -29,6 +30,7 @@ Usage:
     -c, --command           Set command to be executed in each pane (default: \`echo {}\`). The command should contain \`{}\` where you
                             intend to substitute the pane's target argument. Multiple substituions can be made per pane.
                                 For example: \`dig {} +short\`
+    -d, --dump              Write out a tmuxer config file to stdout based on the provided command line arguments
     -f, --file [<file>]     Config file to read from. The following paths are checked for the specified file:
                                 Absolute path, relative path to current directory, and \`\$XDG_CONFIG_HOME/tmuxer\`
     -l, --layout [<layout>] Tmux layout to use
@@ -54,6 +56,9 @@ while (( "$#" > 0 )); do
             else
                 die 'Flag "--command" requires argument'
             fi
+            ;;
+        -d | --dump)
+            TMUXER_DUMP_CONFIG=1
             ;;
         -f | --file)
             if [[ "$2" ]]; then
@@ -130,6 +135,24 @@ else
             TMUXER_PANES+=("${line}")
         done < <(cat | sed '/^$/d')
     fi
+fi
+
+# if dump flag is passed, write tmuxer config vars to stdout
+# useful for saving one-liners to tmuxer config files for future re-use
+if [[ ${TMUXER_DUMP_CONFIG} == 1 ]]; then
+    cat<<DUMP_CONFIG_EOF
+TMUXER_LAYOUT="${TMUXER_LAYOUT}"
+TMUXER_DISABLE_SYNC=${TMUXER_DISABLE_SYNC}
+TMUXER_NEW_SESSION=${TMUXER_NEW_SESSION}
+TMUXER_COMMAND="${TMUXER_COMMAND}"
+TMUXER_PANES=(
+    $(for pane in "${TMUXER_PANES[@]}"; do
+    echo -e "\t$pane"
+    done)
+)
+DUMP_CONFIG_EOF
+
+exit
 fi
 
 # check if already running in tmux
