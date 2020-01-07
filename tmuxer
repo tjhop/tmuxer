@@ -11,6 +11,7 @@ readonly _TMUXER_TMUX_RUNNING=$(tmux info &> /dev/null && echo $?)
 declare -a _TMUXER_REQUIRED_COMMANDS=( 'cat' 'head' 'realpath' 'sed' 'sort' 'ssh' 'tmux' )
 # config vars
 TMUXER_SESSION=
+TMUXER_WINDOW_NUMBER=0
 TMUXER_COMMAND="echo ${_TMUXER_SUBST_STRING}"
 TMUXER_CONFIG_FILE=
 TMUXER_LAYOUT='tiled'
@@ -162,10 +163,10 @@ if [[ ${_TMUXER_TMUX_RUNNING} == 0 && -n "${TMUX+set}" ]]; then
         TMUXER_SESSION="TMUXER-$$"
         tmux new-session -d -s "${TMUXER_SESSION}"
     else
-        TMUXER_SESSION="$(tmux display-message -p '#{session_name}')"
-
         # create new window in our session to hold our panes
-        tmux new-window -t "${TMUXER_SESSION}:$(( $(tmux list-windows -t "${TMUXER_SESSION}" -F '#{window_index}' | sort -rn | head -n1) + 1 ))" -n "TMUXER-$$"
+        TMUXER_SESSION="$(tmux display-message -p '#{session_name}')"
+        TMUXER_WINDOW_NUMBER=$(( $(tmux list-windows -t "${TMUXER_SESSION}" -F '#{window_index}' | sort -rn | head -n1) + 1 ))
+        tmux new-window -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" -n "TMUXER-$$"
     fi
 else
     # tmux not running, need new session anyway
@@ -175,48 +176,48 @@ else
 fi
 
 # enable pane border status for easier tracking of panes
-tmux set-option -t ${TMUXER_SESSION} pane-border-status top
-tmux set-option -t ${TMUXER_SESSION} pane-border-format '#{?pane_synchronized,[sync],} ###{pane_index} #{pane_title}'
+tmux set-option -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" pane-border-status top
+tmux set-option -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" pane-border-format '#{?pane_synchronized,[sync],} ###{pane_index} #{pane_title}'
 
 for pane in "${TMUXER_PANES[@]}"; do
     # split window to make pane
-    tmux split-window -t ${TMUXER_SESSION}
+    tmux split-window -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}"
 
     # clear the pane's buffer
-    tmux send-keys -t ${TMUXER_SESSION} -R \; send-keys -t ${TMUXER_SESSION} C-l \; clear-history
+    tmux send-keys -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" -R \; send-keys -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" C-l \; clear-history
 
     # assemble command to send to pane
-    tmux send-keys -t ${TMUXER_SESSION} -- "${TMUXER_COMMAND//${_TMUXER_SUBST_STRING}/$pane}" C-m
+    tmux send-keys -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" -- "${TMUXER_COMMAND//${_TMUXER_SUBST_STRING}/$pane}" C-m
 
     # adjust layout after every pane created so tmux doesn't get upset about pane size
-    tmux select-layout -t ${TMUXER_SESSION} "${TMUXER_LAYOUT}"
+    tmux select-layout -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" "${TMUXER_LAYOUT}"
 done
 
 # as long as user didn't request input sync to be disabled, enable it
 if [[ "$TMUXER_DISABLE_SYNC" == 0 ]]; then
-    tmux set-option -w -t ${TMUXER_SESSION} synchronize-panes on
+    tmux set-option -w -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" synchronize-panes on
 fi
 
 # kill off empty 1st pane
-tmux kill-pane -t ${TMUXER_SESSION}:.0
+tmux kill-pane -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}.0"
 
 # final layout adjustment
-tmux select-layout -t ${TMUXER_SESSION} "${TMUXER_LAYOUT}"
+tmux select-layout -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" "${TMUXER_LAYOUT}"
 
 # move back to first pane for handing off to user
-tmux select-pane -t ${TMUXER_SESSION}:.0
+tmux select-pane -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}.0"
 
 if [[ "$TMUXER_NEW_SESSION" == 1 ]]; then
     if [[ ${_TMUXER_TMUX_RUNNING} == 0 && -n "${TMUX+set}" ]]; then
         # if tmux is already running and a session is attached, then switch to the new session
         echo "* Switching to new \`tmuxer\` session '${TMUXER_SESSION}'..."
-        tmux switch-client -t ${TMUXER_SESSION}
+        tmux switch-client -t "${TMUXER_SESSION}"
     elif [[ ! -t 0 ]]; then
         # if stdin is pipe and not TTY, then we can't directly attach to the new session
         echo "* New \`tmuxer\` session created, but couldn't attach automatically because input was not from a TTY."
         echo "* You can attach like so:"
         echo "tmux attach -t ${TMUXER_SESSION}"
     else
-        tmux attach -t ${TMUXER_SESSION}
+        tmux attach -t "${TMUXER_SESSION}"
     fi
 fi
