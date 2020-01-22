@@ -12,6 +12,7 @@ declare -a _TMUXER_REQUIRED_COMMANDS=( 'cat' 'head' 'realpath' 'sed' 'sort' 'ssh
 # config vars
 TMUXER_SESSION=
 TMUXER_WINDOW_NUMBER=0
+TMUXER_WINDOW_NAME=''
 TMUXER_COMMAND="echo ${_TMUXER_SUBST_STRING}"
 TMUXER_CONFIG_FILE=
 TMUXER_LAYOUT='tiled'
@@ -40,6 +41,7 @@ Usage:
     -n, --new-session       Create new tmux session (default only if attached session not detected)
     -s, --ssh               "SSH Mode". Changes command to \`ssh {}\` (Same as: \`--command 'ssh {}'\`)
     -u, --unsync            Disable synchronization of panes (default: pane input is synchronized)
+    -w, --window-name       What to name the tmux window created to hold panes
 USAGE_EOF
 }
 
@@ -85,6 +87,14 @@ while (( "$#" > 0 )); do
             ;;
         -u | --unsync)
             TMUXER_DISABLE_SYNC=1
+            ;;
+        -w | --window-name)
+            if [[ "$2" ]]; then
+            TMUXER_WINDOW_NAME=${2}
+                shift
+            else
+                die 'Flag "--window-name" requires argument'
+            fi
             ;;
         --) # end of options
             shift
@@ -142,6 +152,7 @@ fi
 # useful for saving one-liners to tmuxer config files for future re-use
 if [[ ${TMUXER_DUMP_CONFIG} == 1 ]]; then
     cat<<DUMP_CONFIG_EOF
+TMUXER_WINDOW_NAME="${TMUXER_WINDOW_NAME:-}"
 TMUXER_LAYOUT="${TMUXER_LAYOUT}"
 TMUXER_DISABLE_SYNC=${TMUXER_DISABLE_SYNC}
 TMUXER_NEW_SESSION=${TMUXER_NEW_SESSION}
@@ -206,6 +217,11 @@ tmux select-layout -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" "${TMUXER_LAYO
 
 # move back to first pane for handing off to user
 tmux select-pane -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}.0"
+
+# if window name provided, set it
+if [[ ! -z "$TMUXER_WINDOW_NAME" ]]; then
+    tmux rename-window -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" "$TMUXER_WINDOW_NAME"
+fi
 
 if [[ "$TMUXER_NEW_SESSION" == 1 ]]; then
     if [[ ${_TMUXER_TMUX_RUNNING} == 0 && -n "${TMUX+set}" ]]; then
