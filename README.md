@@ -50,6 +50,7 @@ Usage:
     -n, --new-session       Create new tmux session (default only if attached session not detected)
     -s, --ssh               "SSH Mode". Changes command to `ssh {}` (Same as: `--command 'ssh {}'`)
     -u, --unsync            Disable synchronization of panes (default: pane input is synchronized)
+    -w, --window-name       What to name the tmux window created to hold panes
 ```
 
 "Targets" for each Tmux pane can be provided as command line arguments, by piping/redirecting data to `tmuxer`, or by writing a config file. Checkout the examples below!
