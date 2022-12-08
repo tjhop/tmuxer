@@ -13,6 +13,12 @@ A Tmux layout generator and command executor, similar to [tmuxinator](https://gi
 
 ## Installation
 
+#### Insecure One-Linder
+
+```shell
+sudo wget -O /usr/local/bin/tmuxer https://raw.githubusercontent.com/tjhop/tmuxer/main/tmuxer
+```
+
 #### Install with git
 
 1. Install `tmux` (instructions will be specific to the distro you're running).
