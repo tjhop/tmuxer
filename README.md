@@ -44,6 +44,7 @@ makepkg -si PKGBUILD
 $ tmuxer -h
 Usage:
     -h, --help              Show help
+    -b, --blank [<integer>] How many blank tmux panes to create in the new window
     -c, --command           Set command to be executed in each pane (default: `echo {}`). The command should contain `{}` where you
                             intend to substitute the pane's target argument. Multiple substituions can be made per pane.
                                 For example: `dig {} +short`
@@ -94,6 +95,9 @@ $ tmuxer -c '{}' \
 #### Open up 4 blank panes in a new-session:
 
 ```shell
+$ tmuxer -n -b 4
+
+# same as:
 $ tmuxer -n -c '{}' '' '' '' ''
 ```
 

@@ -30,12 +30,15 @@ TMUXER_LAYOUT='tiled'
 TMUXER_NEW_SESSION=0
 TMUXER_DISABLE_SYNC=0
 TMUXER_DUMP_CONFIG=0
+TMUXER_BLANK=0
+declare -a TMUXER_PANES=()
 
 
 print_help () {
     cat <<USAGE_EOF
 Usage:
     -h, --help              Show help
+    -b, --blank [<integer>] How many blank tmux panes to create in the new window
     -c, --command           Set command to be executed in each pane (default: \`echo {}\`). The command should contain \`{}\` where you
                             intend to substitute the pane's target argument. Multiple substituions can be made per pane.
                                 For example: \`dig {} +short\`
@@ -59,8 +62,25 @@ while (( "$#" > 0 )); do
             print_help
             exit
             ;;
-        -c | --command)
+        -b | --blank)
             if [[ "$2" ]]; then
+                TMUXER_COMMAND="{}"
+                TMUXER_BLANK=1
+                count="$(printf '%d\n' ${2} 2>/dev/null)"
+                if [[ $count > 0 ]]; then
+                    TMUXER_PANES=("")
+                    for (( i=1; i<$count; i++ )); do
+                        TMUXER_PANES+=("")
+                    done
+                fi
+                shift
+            else
+                die 'Flag "--blank" requires argument'
+            fi
+            ;;
+        -c | --command)
+            # only accept --command flag value is --blank is not set
+            if [[ "$2" && ${TMUXER_BLANK} == 0 ]]; then
                 TMUXER_COMMAND=${2}
                 shift
             else
@@ -145,10 +165,14 @@ if [[ ! -z "$TMUXER_CONFIG_FILE" ]]; then
     fi
 else
     # running from command line, check if input is interactive shell or pipe
-    if [[ -t 0 ]]; then 
-        # we have a TTY, grab remaining command line args
-        TMUXER_PANES=("$@")
+    if [[ -t 0 ]]; then
+        if [[ ${TMUXER_BLANK} == 0 ]]; then
+            # we have a TTY and --blank has not been requested, grab remaining command line args
+            TMUXER_PANES=("$@")
+        fi
     else
+        # input is pipe, ignore --blank flag if set and get panes per line of non-empty input
+        TMUXER_BLANK=0
         while read -r line; do
             TMUXER_PANES+=("${line}")
         done < <(cat | sed '/^$/d')
