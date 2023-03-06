@@ -20,19 +20,18 @@ declare -A _TMUXER_VALID_LAYOUT_ARR=( ['tiled']=1 ['even-horizontal']=1 ['even-v
 # utility vars
 readonly _TMUXER_TMUX_RUNNING=$(tmux info &> /dev/null && echo $?)
 declare -a _TMUXER_REQUIRED_COMMANDS=( 'cat' 'head' 'realpath' 'sed' 'sort' 'ssh' 'tmux' )
-# config vars
-TMUXER_SESSION=
 TMUXER_WINDOW_NUMBER=0
+TMUXER_SESSION=
+TMUXER_DUMP_CONFIG=0
+TMUXER_BLANK=0
+declare -a TMUXER_PANES=()
+# config vars
 TMUXER_WINDOW_NAME=''
 TMUXER_COMMAND="echo ${_TMUXER_SUBST_STRING}"
 TMUXER_CONFIG_FILE=
 TMUXER_LAYOUT='tiled'
 TMUXER_NEW_SESSION=0
 TMUXER_DISABLE_SYNC=0
-TMUXER_DUMP_CONFIG=0
-TMUXER_BLANK=0
-declare -a TMUXER_PANES=()
-
 
 print_help () {
     cat <<USAGE_EOF
