@@ -63,7 +63,7 @@ while (( "$#" > 0 )); do
             ;;
         -b | --blank)
             if [[ "$2" ]]; then
-                TMUXER_COMMAND="{}"
+                TMUXER_COMMAND="$_TMUXER_SUBST_STRING"
                 TMUXER_BLANK=1
                 count="$(printf '%d\n' ${2} 2>/dev/null)"
                 if [[ $count > 0 ]]; then
