@@ -67,8 +67,7 @@ while (( "$#" > 0 )); do
                 TMUXER_BLANK=1
                 count="$(printf '%d\n' ${2} 2>/dev/null)"
                 if [[ $count > 0 ]]; then
-                    TMUXER_PANES=("")
-                    for (( i=1; i<$count; i++ )); do
+                    for (( i=0; i<$count; i++ )); do
                         TMUXER_PANES+=("")
                     done
                 fi
