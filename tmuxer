@@ -227,7 +227,9 @@ for pane in "${TMUXER_PANES[@]}"; do
     tmux send-keys -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" -R \; send-keys -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" C-l \; clear-history
 
     # assemble command to send to pane
-    tmux send-keys -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" -- "${TMUXER_COMMAND//${_TMUXER_SUBST_STRING}/$pane}" C-m
+    if [[ ${TMUXER_BLANK} == 0 ]]; then
+        tmux send-keys -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" -- "${TMUXER_COMMAND//${_TMUXER_SUBST_STRING}/$pane}" C-m
+    fi
 
     # adjust layout after every pane created so tmux doesn't get upset about pane size
     tmux select-layout -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" "${TMUXER_LAYOUT}"
