@@ -55,6 +55,7 @@ Usage:
                                 Valid options: `tiled`, `even-horizontal`, `even-vertical`, `main-horizontal`, `main-vertical`
                                 Default: `tiled`
     -n, --new-session       Create new tmux session (default only if attached session not detected)
+    -p, --path              Path to starting directory for new sessions/windows created by tmuxer (default: empty)
     -s, --ssh               "SSH Mode". Changes command to `ssh {}` (Same as: `--command 'ssh {}'`)
     -u, --unsync            Disable synchronization of panes (default: pane input is synchronized)
     -w, --window-name       What to name the tmux window created to hold panes
@@ -109,6 +110,7 @@ TMUXER_LAYOUT='even-vertical'
 TMUXER_DISABLE_SYNC=1
 TMUXER_NEW_SESSION=1
 TMUXER_COMMAND='echo "{}": && dig {} +short'
+TMUXER_WORK_DIR=""
 TMUXER_PANES=(
     "google.com"
     "cloudflare.com"
@@ -136,6 +138,7 @@ TMUXER_LAYOUT="tiled"
 TMUXER_DISABLE_SYNC=0
 TMUXER_NEW_SESSION=1
 TMUXER_COMMAND="ssh {}"
+TMUXER_WORK_DIR=""
 TMUXER_PANES=(
         user@host01
         user@host02

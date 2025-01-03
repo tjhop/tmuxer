@@ -29,6 +29,7 @@ declare -a TMUXER_PANES=()
 TMUXER_WINDOW_NAME=''
 TMUXER_COMMAND="echo ${_TMUXER_SUBST_STRING}"
 TMUXER_CONFIG_FILE=
+TMUXER_WORK_DIR=
 TMUXER_LAYOUT='tiled'
 TMUXER_NEW_SESSION=0
 TMUXER_DISABLE_SYNC=0
@@ -48,6 +49,7 @@ Usage:
                                 Valid options: \`tiled\`, \`even-horizontal\`, \`even-vertical\`, \`main-horizontal\`, \`main-vertical\`
                                 Default: \`tiled\`
     -n, --new-session       Create new tmux session (default only if attached session not detected)
+    -p, --path              Path to starting directory for new sessions/windows created by tmuxer (default: empty)
     -s, --ssh               "SSH Mode". Changes command to \`ssh {}\` (Same as: \`--command 'ssh {}'\`)
     -u, --unsync            Disable synchronization of panes (default: pane input is synchronized)
     -w, --window-name       What to name the tmux window created to hold panes
@@ -106,6 +108,14 @@ while (( "$#" > 0 )); do
             ;;
         -n | --new-session)
             TMUXER_NEW_SESSION=1
+            ;;
+        -p | --path)
+            if [[ "$2" ]]; then
+                TMUXER_WORK_DIR=${2}
+                shift
+            else
+                die 'Flag "--path" requires argument'
+            fi
             ;;
         -s | --ssh)
             TMUXER_COMMAND="ssh {}"
@@ -186,6 +196,7 @@ TMUXER_LAYOUT="${TMUXER_LAYOUT}"
 TMUXER_DISABLE_SYNC=${TMUXER_DISABLE_SYNC}
 TMUXER_NEW_SESSION=${TMUXER_NEW_SESSION}
 TMUXER_COMMAND="${TMUXER_COMMAND}"
+TMUXER_WORK_DIR="${TMUXER_WORK_DIR}"
 TMUXER_PANES=(
     $(for pane in "${TMUXER_PANES[@]}"; do
     echo -e "\t$pane"
@@ -201,18 +212,18 @@ if [[ ${_TMUXER_TMUX_RUNNING} == 0 && -n "${TMUX+set}" ]]; then
     # check if new session was requested
     if [[ "$TMUXER_NEW_SESSION" == 1 ]]; then
         TMUXER_SESSION="TMUXER-$$"
-        tmux new-session -d -s "${TMUXER_SESSION}"
+        tmux new-session -d -s "${TMUXER_SESSION}" -c "${TMUXER_WORK_DIR}"
     else
         # create new window in our session to hold our panes
         TMUXER_SESSION="$(tmux display-message -p '#{session_name}')"
         TMUXER_WINDOW_NUMBER=$(( $(tmux list-windows -t "${TMUXER_SESSION}" -F '#{window_index}' | sort -rn | head -n1) + 1 ))
-        tmux new-window -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" -n "TMUXER-$$"
+        tmux new-window -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" -n "TMUXER-$$" -c "${TMUXER_WORK_DIR}"
     fi
 else
     # tmux not running, need new session anyway
     TMUXER_NEW_SESSION=1
     TMUXER_SESSION="TMUXER-$$"
-    tmux new-session -d -s "${TMUXER_SESSION}"
+    tmux new-session -d -s "${TMUXER_SESSION}" -c "${TMUXER_WORK_DIR}"
 fi
 
 # enable pane border status for easier tracking of panes
@@ -221,7 +232,7 @@ tmux set-option -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" pane-border-forma
 
 for pane in "${TMUXER_PANES[@]}"; do
     # split window to make pane
-    tmux split-window -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}"
+    tmux split-window -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" -c "${TMUXER_WORK_DIR}"
 
     # clear the pane's buffer
     tmux send-keys -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" -R \; send-keys -t "${TMUXER_SESSION}:${TMUXER_WINDOW_NUMBER}" C-l \; clear-history
@@ -265,6 +276,6 @@ if [[ "$TMUXER_NEW_SESSION" == 1 ]]; then
         echo "* You can attach like so:"
         echo "tmux attach -t ${TMUXER_SESSION}"
     else
-        tmux attach -t "${TMUXER_SESSION}"
+        tmux attach -t "${TMUXER_SESSION}" -c "${TMUXER_WORK_DIR}"
     fi
 fi
